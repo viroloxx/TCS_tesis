@@ -127,7 +127,7 @@ export const CxcTable: React.FC = () => {
             <HoverEyeTrigger
               active={mostrarMontosTabla}
               onHoverChange={setMostrarMontosTabla}
-              label="Ver montos de la tabla"
+              label="Ver montos"
               mode="click"
             />
 
