@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
 import { Card } from '../common/Card';
 import { MaskedAmount } from '../common/MaskedAmount';
@@ -6,16 +6,77 @@ import { Badge } from '../common/Badge';
 import { HoverEyeTrigger } from '../common/HoverEyeTrigger';
 import { formatearMonedaVE, enmascararMonto } from '../../utils/formatters';
 
+type PeriodoFiltro = 'MES_ACTUAL' | '3_MESES' | '6_MESES' | '1_ANO';
+
+const ETIQUETAS_PERIODO: Record<PeriodoFiltro, string> = {
+  MES_ACTUAL: 'Mes actual',
+  '3_MESES': 'Últimos 3 meses',
+  '6_MESES': 'Últimos 6 meses',
+  '1_ANO': 'Último año (12 meses)'
+};
+
 export const MonthlyProjection: React.FC = () => {
   const { proyecciones, tasaBCV } = useData();
   const [mostrarMontos, setMostrarMontos] = useState<boolean>(false);
+  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>('3_MESES');
+
+  const proyeccionesFiltradas = useMemo(() => {
+    if (proyecciones.length === 0) return [];
+
+    // Cortar siempre en el mes actual hacia atrás, excluyendo meses futuros
+    const hoy = new Date();
+    const mesLocal = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+    const mesCorteActual = proyecciones.some((p) => p.mesAno <= mesLocal) ? mesLocal : '2026-11';
+    const hastaMesActual = proyecciones.filter((p) => p.mesAno <= mesCorteActual);
+
+    switch (periodoFiltro) {
+      case 'MES_ACTUAL':
+        return hastaMesActual.slice(-1);
+      case '3_MESES':
+        return hastaMesActual.slice(-3);
+      case '6_MESES':
+        return hastaMesActual.slice(-6);
+      case '1_ANO':
+      default:
+        return hastaMesActual.slice(-12);
+    }
+  }, [proyecciones, periodoFiltro]);
 
   return (
     <Card
       title="Proyección Mensual Consolidada de Flujo"
       subtitle="Integración Odoo Ventas + El Cotizador TCS + Cronograma PMO Propia"
       action={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <label
+              htmlFor="filtro-periodo-proyeccion"
+              style={{ fontSize: '0.88rem', fontWeight: 600, color: '#475569' }}
+            >
+              Periodo:
+            </label>
+            <select
+              id="filtro-periodo-proyeccion"
+              value={periodoFiltro}
+              onChange={(e) => setPeriodoFiltro(e.target.value as PeriodoFiltro)}
+              style={{
+                padding: '7px 12px',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                fontSize: '0.90rem',
+                backgroundColor: '#ffffff',
+                fontWeight: 600,
+                color: '#0f172a',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="MES_ACTUAL">Mes actual</option>
+              <option value="3_MESES">Últimos 3 meses</option>
+              <option value="6_MESES">Últimos 6 meses</option>
+              <option value="1_ANO">Último año</option>
+            </select>
+          </div>
+
           <HoverEyeTrigger
             active={mostrarMontos}
             onHoverChange={setMostrarMontos}
@@ -55,7 +116,7 @@ export const MonthlyProjection: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {proyecciones.map((p) => {
+            {proyeccionesFiltradas.map((p) => {
               const totalIngresos = p.totalCXCCobradoUSD + p.totalCXCEstimadoUSD;
               const totalEgresos = p.totalCXPPagadoUSD + p.totalCXPEstimadoUSD;
               const esPositivo = p.flujoNetoProyectadoUSD >= 0;
@@ -145,6 +206,40 @@ export const MonthlyProjection: React.FC = () => {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Pie informativo del periodo visualizado */}
+      <div
+        style={{
+          marginTop: '14px',
+          paddingTop: '12px',
+          borderTop: '1px solid #e2e8f0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          fontSize: '0.88rem',
+          color: '#475569'
+        }}
+      >
+        <span>
+          Visualizando{' '}
+          <strong style={{ color: '#0f172a' }}>
+            {proyeccionesFiltradas.length}{' '}
+            {proyeccionesFiltradas.length === 1 ? 'mes' : 'meses'}
+          </strong>{' '}
+          • Periodo seleccionado:{' '}
+          <strong style={{ color: '#0f172a' }}>{ETIQUETAS_PERIODO[periodoFiltro]}</strong>
+        </span>
+        {proyeccionesFiltradas.length > 0 && (
+          <span style={{ fontSize: '0.84rem', color: '#64748b', fontWeight: 500 }}>
+            Rango: {proyeccionesFiltradas[0].nombreMes}
+            {proyeccionesFiltradas.length > 1
+              ? ` — ${proyeccionesFiltradas[proyeccionesFiltradas.length - 1].nombreMes}`
+              : ''}
+          </span>
+        )}
       </div>
     </Card>
   );

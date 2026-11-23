@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 
 export type TabActiva = 'dashboard' | 'proyeccion' | 'cxc' | 'cxp' | 'pmo';
@@ -16,6 +17,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectTab
 }) => {
   const { usuario, logout } = useAuth();
+  const [confirmarSalidaOpen, setConfirmarSalidaOpen] = useState<boolean>(false);
   const menuItems = [
     {
       id: 'dashboard' as TabActiva,
@@ -38,7 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   return (
-    <aside
+    <>
+      <aside
       style={{
         width: collapsed ? '72px' : '260px',
         backgroundColor: '#0f172a', // Navy institucional TCS
@@ -197,26 +200,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Botón Salir */}
         <button
-          onClick={logout}
+          onClick={() => setConfirmarSalidaOpen(true)}
           title="Cerrar sesión del sistema"
           style={{
-            backgroundColor: '#1e293b',
-            border: '1px solid #334155',
+            backgroundColor: '#dc2626',
+            border: '1px solid #ef4444',
             cursor: 'pointer',
-            color: '#f8fafc',
+            color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            fontSize: '0.86rem',
-            fontWeight: 600,
+            fontSize: '0.88rem',
+            fontWeight: 700,
             padding: collapsed ? '8px 0' : '9px 12px',
             borderRadius: '8px',
             width: '100%',
             transition: 'background-color 0.15s ease'
           }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#334155')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#1e293b')}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#b91c1c')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
         >
           <span style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1 }}>↪</span>
           {!collapsed && <span>Salir</span>}
@@ -239,5 +242,144 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
     </aside>
+
+      {confirmarSalidaOpen &&
+        createPortal(
+          <div
+            onClick={() => setConfirmarSalidaOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-salir-titulo"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.65)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 200,
+              padding: '20px'
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '16px',
+                padding: '28px',
+                maxWidth: '420px',
+                width: '100%',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)',
+                border: '1px solid #cbd5e1',
+                fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '14px'
+                }}
+              >
+                <span
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '10px',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '1.2rem',
+                    fontWeight: 800,
+                    flexShrink: 0
+                  }}
+                >
+                  ↪
+                </span>
+                <h3
+                  id="modal-salir-titulo"
+                  style={{
+                    margin: 0,
+                    fontSize: '1.2rem',
+                    fontWeight: 800,
+                    color: '#0f172a'
+                  }}
+                >
+                  Confirmar Cierre de Sesión
+                </h3>
+              </div>
+
+              <p
+                style={{
+                  margin: '0 0 24px 0',
+                  fontSize: '0.96rem',
+                  lineHeight: 1.5,
+                  color: '#334155'
+                }}
+              >
+                ¿Está seguro que desea cerrar la sesión actual de{' '}
+                <strong style={{ color: '#0f172a' }}>
+                  {usuario?.nombre || 'Administrador GECOP'}
+                </strong>{' '}
+                y volver a la pantalla de inicio de sesión?
+              </p>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '12px'
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setConfirmarSalidaOpen(false)}
+                  style={{
+                    padding: '10px 18px',
+                    fontSize: '0.92rem',
+                    fontWeight: 600,
+                    borderRadius: '10px',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    border: '2px solid #cbd5e1',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmarSalidaOpen(false);
+                    logout();
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    fontSize: '0.92rem',
+                    fontWeight: 700,
+                    borderRadius: '10px',
+                    backgroundColor: '#dc2626',
+                    color: '#ffffff',
+                    border: '1px solid #b91c1c',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#b91c1c')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
+                >
+                  Sí, Salir al Login
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 };

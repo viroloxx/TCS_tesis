@@ -56,9 +56,36 @@ select:focus-visible {
   animation: candadoPulseGlow 2.2s infinite ease-in-out;
 }
 
+/* ================= ANIMACIÓN VÓRTICE SIMPLE LOGO TCS ================= */
+@keyframes tcsLogoVortexSimple {
+  0% {
+    transform: scale(0.3) rotate(-360deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.06) rotate(0deg);
+    opacity: 1;
+  }
+  75% {
+    transform: scale(0.98) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.tcs-logo-vortex-simple {
+  animation: tcsLogoVortexSimple 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pulse-glow-candado {
     animation: none;
     box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  }
+  .tcs-logo-vortex-simple {
+    animation: none;
   }
 }
