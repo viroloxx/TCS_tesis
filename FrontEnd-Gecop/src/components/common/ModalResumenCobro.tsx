@@ -21,28 +21,32 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
   const { cuotasCXC, proyectos, clientes, entregables, compromisosCXP, tasaBCV } = useData();
   const [mostrarMontosResumen, setMostrarMontosResumen] = useState<boolean>(false);
 
+  if (!isOpen || !cuotaId) return null;
+
+  const cuotaRef = cuotasCXC.find((c) => c.id === cuotaId);
+  if (!cuotaRef) return null;
+
+  const cuotasProyecto = cuotasCXC
+    .filter((c) => c.proyectoId === cuotaRef.proyectoId)
+    .sort((a, b) => a.numeroCuota - b.numeroCuota);
+
+  // Cuota en turno actual (o cuotaRef si ya todo está cobrado)
+  const cuotaEnTurnoProyecto = cuotasProyecto.find((c) => c.estatus !== 'Cobrado');
+  const cuota = cuotaEnTurnoProyecto || cuotaRef;
+
+  const proyecto = proyectos.find((p) => p.id === cuota.proyectoId);
+  const cliente = clientes.find((c) => c.id === proyecto?.clienteId);
+  const entregablesProyecto = entregables.filter((e) => e.proyectoId === cuota.proyectoId);
+  const compromisosVinculados = compromisosCXP.filter((cxp) => cxp.cuotaCxcAsociadaId === cuota.id);
+
+  const esPagoAlContado =
+    proyecto?.modalidadPago === 'Al Contado' || cuotasProyecto.length === 1;
+
   const fmtMonto = (montoUSD: number, moneda: 'VES' | 'USD'): string => {
     const val = moneda === 'VES' ? montoUSD * tasaBCV : montoUSD;
     return enmascararMonto(formatearMonedaVE(val, moneda), !mostrarMontosResumen);
   };
 
-  if (!isOpen || !cuotaId) return null;
-
-  const cuota = cuotasCXC.find((c) => c.id === cuotaId);
-  if (!cuota) return null;
-
-  const proyecto = proyectos.find((p) => p.id === cuota.proyectoId);
-  const cliente = clientes.find((c) => c.id === proyecto?.clienteId);
-
-  // Todas las cuotas e hitos del mismo proyecto para calcular el avance financiero y técnico
-  const cuotasProyecto = cuotasCXC
-    .filter((c) => c.proyectoId === cuota.proyectoId)
-    .sort((a, b) => a.numeroCuota - b.numeroCuota);
-
-  const entregablesProyecto = entregables.filter((e) => e.proyectoId === cuota.proyectoId);
-  const compromisosVinculados = compromisosCXP.filter((cxp) => cxp.cuotaCxcAsociadaId === cuota.id);
-
-  // Cálculos de cuánto se ha pagado del proyecto y por cuotas
   const montoTotalProyectoUSD = cuotasProyecto.reduce((acc, c) => acc + c.montoUSD, 0);
   const montoCobradoProyectoUSD = cuotasProyecto
     .filter((c) => c.estatus === 'Cobrado')
@@ -54,6 +58,8 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
       : 0;
 
   const cuotasCobradasCount = cuotasProyecto.filter((c) => c.estatus === 'Cobrado').length;
+  const proyectoCompletamentePagado =
+    cuotasProyecto.length > 0 && cuotasCobradasCount === cuotasProyecto.length;
 
   const getBadgeEstatusCuota = (estatus: EstatusCXC): { variant: BadgeVariant; label: string } => {
     switch (estatus) {
@@ -119,7 +125,7 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
           backgroundColor: '#ffffff',
           borderRadius: '16px',
           padding: '28px',
-          maxWidth: '780px',
+          maxWidth: '800px',
           width: '100%',
           maxHeight: '90vh',
           overflowY: 'auto',
@@ -205,11 +211,15 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
                 }}
               >
                 {cuota.estatus === 'Cobrado'
-                  ? '✓ Detalle de Factura Verificada'
+                  ? esPagoAlContado
+                    ? '✓ Pago al Contado Verificado'
+                    : '✓ Detalle de Factura Verificada'
+                  : esPagoAlContado
+                  ? 'Pago Único al Contado (100%)'
                   : `Cuota en Turno (#${cuota.numeroCuota} de ${cuota.totalCuotas})`}
               </span>
               <Badge
-                label={cuota.estatus === 'Cobrado' ? 'Cobro Verificado' : cuota.estatus}
+                label={cuota.estatus === 'Cobrado' ? 'Cobrado' : cuota.estatus}
                 variant={getBadgeEstatusCuota(cuota.estatus).variant}
               />
             </div>
@@ -358,7 +368,7 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
                 Estado General de Recaudación del Proyecto
               </span>
               <span style={{ fontSize: '0.82rem', color: '#64748b', marginLeft: '8px' }}>
-                ({cuotasCobradasCount} de {cuotasProyecto.length} cuotas pagadas)
+                ({cuotasCobradasCount} de {cuotasProyecto.length} {cuotasProyecto.length === 1 ? 'pago al contado' : 'cuotas pagadas'})
               </span>
             </div>
             <span
@@ -469,6 +479,10 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
                   const esCuotaActual = c.id === cuota.id;
                   const badgeCuota = getBadgeEstatusCuota(c.estatus);
                   const badgeHito = hito ? getBadgeEntregable(hito.estatus) : null;
+                  const pctCuota =
+                    montoTotalProyectoUSD > 0
+                      ? Math.round((c.montoUSD / montoTotalProyectoUSD) * 100)
+                      : 100;
 
                   return (
                     <tr
@@ -479,24 +493,40 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
                       }}
                     >
                       <td style={{ padding: '12px' }}>
-                        <div style={{ fontWeight: 700, color: '#0f172a' }}>
-                          Cuota #{c.numeroCuota} de {c.totalCuotas}{' '}
-                          {esCuotaActual && (
+                        <div style={{ fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                          <span>
+                            {c.totalCuotas === 1
+                              ? 'Pago al Contado (1/1)'
+                              : `Cuota #${c.numeroCuota} de ${c.totalCuotas}`}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.73rem',
+                              fontWeight: 800,
+                              color: '#0369a1',
+                              backgroundColor: '#e0f2fe',
+                              padding: '1px 7px',
+                              borderRadius: '999px',
+                              fontFamily: "'JetBrains Mono', monospace"
+                            }}
+                          >
+                            {pctCuota}%
+                          </span>
+                          {esCuotaActual && !proyectoCompletamentePagado && (
                             <span
                               style={{
                                 fontSize: '0.72rem',
                                 backgroundColor: '#166534',
                                 color: '#ffffff',
                                 padding: '2px 6px',
-                                borderRadius: '4px',
-                                marginLeft: '4px'
+                                borderRadius: '4px'
                               }}
                             >
                               Actual
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{c.descripcion}</div>
+                        <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>{c.descripcion}</div>
                         <div style={{ fontSize: '0.76rem', color: '#2563eb', fontWeight: 600, marginTop: '2px' }}>
                           {c.numeroFactura ? `N° ${c.numeroFactura}` : 'Sin factura emitida'} • Vence: {formatearFechaVE(c.fechaVencimiento)}
                         </div>

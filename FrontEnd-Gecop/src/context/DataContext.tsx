@@ -20,7 +20,9 @@ import {
   validarCandadoFinanciero,
   sincronizarFechaConEntregable,
   calcularProyeccionMensual,
-  calcularKpis
+  calcularKpis,
+  simularReajusteCuotasProyecto,
+  OpcionesCobroExtra
 } from '../utils/calculations';
 
 interface DataContextType {
@@ -39,7 +41,8 @@ interface DataContextType {
     cuotaId: string,
     fechaCobro?: string,
     bancoReceptor?: string,
-    referenciaCobro?: string
+    referenciaCobro?: string,
+    opcionesExtra?: OpcionesCobroExtra
   ) => void;
   marcarCompromisoPagado: (compromisoId: string, soporte?: string, fechaPago?: string) => void;
   actualizarFechaEntregable: (entregableId: string, nuevaFecha: string) => void;
@@ -140,14 +143,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return calcularProyeccionMensual(cuotasCXC, compromisosValidados);
   }, [cuotasCXC, compromisosValidados]);
 
-  // Acción: Marcar Cuota como 'Cobrado' (Valida secuencia de cuotas: no se puede pagar Cuota N sin haber pagado N-1)
+  // Acción: Marcar Cuota como 'Cobrado' (Soporta cuota normal, pago de mayor porcentaje con reajuste automático y liquidación total / al contado)
   const marcarCuotaCobrada = (
     cuotaId: string,
     fechaCobro?: string,
     bancoReceptor?: string,
-    referenciaCobro?: string
+    referenciaCobro?: string,
+    opcionesExtra?: OpcionesCobroExtra
   ) => {
     const fechaEfectiva = fechaCobro || new Date().toISOString().substring(0, 10);
+    const bancoFinal = bancoReceptor || '0105 - Banco Mercantil C.A. (Cta. Corriente Corporativa)';
+    const refFinal = referenciaCobro || 'REF-VERIFICADA';
+
     setCuotasCXC((prev) => {
       const cuotaObjetivo = prev.find((c) => c.id === cuotaId);
       if (!cuotaObjetivo) return prev;
@@ -164,31 +171,84 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return prev;
       }
 
-      // Al cobrarse la cuota actual, si la siguiente cuota en fila estaba 'Pendiente', pasa a 'Por Facturar' (se habilita)
+      const cuotasDelProyecto = prev
+        .filter((c) => c.proyectoId === cuotaObjetivo.proyectoId)
+        .sort((a, b) => a.numeroCuota - b.numeroCuota);
+
+      const simulacion = simularReajusteCuotasProyecto(cuotasDelProyecto, cuotaId, opcionesExtra);
+      const modo = opcionesExtra?.modo || 'cuota_normal';
       const siguienteNumero = cuotaObjetivo.numeroCuota + 1;
 
+      const mapaReajustes = new Map(
+        (simulacion?.cuotasReajustadas || []).map((r) => [r.cuotaId, r])
+      );
+
       return prev.map((cuota) => {
+        if (cuota.proyectoId !== cuotaObjetivo.proyectoId) {
+          return cuota;
+        }
+
+        const reajuste = mapaReajustes.get(cuota.id);
+
+        // Cuota actual en turno
         if (cuota.id === cuotaId) {
+          let comentarioActual = cuota.comentarios;
+          if (simulacion?.liquidaTotalidad && modo === 'totalidad') {
+            comentarioActual = 'Liquidación total anticipada del proyecto (100% cobrado).';
+          } else if (cuota.totalCuotas === 1) {
+            comentarioActual = 'Pago al Contado liquidado en su totalidad (100% cobrado).';
+          } else if (modo === 'mayor_porcentaje' && reajuste) {
+            comentarioActual = `Pago superior al porcentaje establecido (${simulacion?.porcentajeEstePago}% del contrato). Saldo restante reajustado automáticamente en las cuotas pendientes.`;
+          }
+
           return {
             ...cuota,
+            montoUSD: reajuste ? reajuste.montoNuevoUSD : cuota.montoUSD,
             estatus: 'Cobrado',
             fechaCobroEfectivo: fechaEfectiva,
             numeroFactura: cuota.numeroFactura || `FAC-2026-09${cuota.numeroCuota}5`,
             fechaFacturacion: cuota.fechaFacturacion || fechaEfectiva,
-            bancoReceptor: bancoReceptor || cuota.bancoReceptor || '0105 - Banco Mercantil C.A. (Cta. Corriente Corporativa)',
-            referenciaCobro: referenciaCobro || cuota.referenciaCobro || 'REF-VERIFICADA'
+            bancoReceptor: bancoFinal,
+            referenciaCobro: refFinal,
+            comentarios: comentarioActual
           };
         }
 
-        if (
-          cuota.proyectoId === cuotaObjetivo.proyectoId &&
-          cuota.numeroCuota === siguienteNumero &&
-          cuota.estatus === 'Pendiente'
-        ) {
-          return {
-            ...cuota,
-            estatus: 'Por Facturar'
-          };
+        // Cuotas posteriores del mismo proyecto
+        if (cuota.numeroCuota > cuotaObjetivo.numeroCuota && cuota.estatus !== 'Cobrado') {
+          if (simulacion?.liquidaTotalidad && reajuste?.seraCobrada) {
+            return {
+              ...cuota,
+              estatus: 'Cobrado',
+              fechaCobroEfectivo: fechaEfectiva,
+              numeroFactura: cuota.numeroFactura || `FAC-2026-09${cuota.numeroCuota}5`,
+              fechaFacturacion: cuota.fechaFacturacion || fechaEfectiva,
+              bancoReceptor: bancoFinal,
+              referenciaCobro: refFinal,
+              comentarios: `Cubierta mediante liquidación total anticipada junto con la Cuota #${cuotaObjetivo.numeroCuota}.`
+            };
+          }
+
+          const nuevoEstatus =
+            cuota.numeroCuota === siguienteNumero && cuota.estatus === 'Pendiente'
+              ? 'Por Facturar'
+              : cuota.estatus;
+
+          if (modo === 'mayor_porcentaje' && reajuste) {
+            return {
+              ...cuota,
+              montoUSD: reajuste.montoNuevoUSD,
+              estatus: nuevoEstatus,
+              comentarios: `Monto y porcentaje (${reajuste.porcentajeNuevo}%) reajustados automáticamente tras abono mayor en Cuota #${cuotaObjetivo.numeroCuota}.`
+            };
+          }
+
+          if (nuevoEstatus !== cuota.estatus) {
+            return {
+              ...cuota,
+              estatus: nuevoEstatus
+            };
+          }
         }
 
         return cuota;

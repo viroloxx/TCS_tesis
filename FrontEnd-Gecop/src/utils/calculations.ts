@@ -148,6 +148,189 @@ export const calcularProyeccionMensual = (
   });
 };
 
+export type ModoCobroProyecto = 'cuota_normal' | 'mayor_porcentaje' | 'totalidad';
+
+export interface OpcionesCobroExtra {
+  modo: ModoCobroProyecto;
+  porcentajeProyectoDeseado?: number;
+}
+
+export interface CuotaReajustadaPreview {
+  cuotaId: string;
+  numeroCuota: number;
+  totalCuotas: number;
+  montoNuevoUSD: number;
+  porcentajeNuevo: number;
+  seraCobrada: boolean;
+}
+
+export interface ResultadoSimulacionCobro {
+  montoTotalProyectoUSD: number;
+  saldoPendienteAntesUSD: number;
+  montoAPagarAhoraUSD: number;
+  porcentajeEstePago: number;
+  porcentajeAcumuladoDespues: number;
+  saldoRestanteDespuesUSD: number;
+  porcentajeRestanteDespues: number;
+  liquidaTotalidad: boolean;
+  cuotasReajustadas: CuotaReajustadaPreview[];
+}
+
+/**
+ * REGLA 5: Simulación y Reajuste de Cuotas por Pago Mayor al Establecido o Liquidación Total
+ * Calcula cómo se acomodan los porcentajes y el restante de las cuotas posteriores
+ * manteniendo intacto el monto total del contrato al centavo.
+ */
+export const simularReajusteCuotasProyecto = (
+  cuotasDelProyectoOrdenadas: CuotaCXC[],
+  cuotaActualId: string,
+  opciones?: OpcionesCobroExtra
+): ResultadoSimulacionCobro | null => {
+  const cuotaActual = cuotasDelProyectoOrdenadas.find((c) => c.id === cuotaActualId);
+  if (!cuotaActual) return null;
+
+  const modo: ModoCobroProyecto = opciones?.modo || 'cuota_normal';
+  const montoTotalProyectoUSD = Number(
+    cuotasDelProyectoOrdenadas.reduce((acc, c) => acc + c.montoUSD, 0).toFixed(2)
+  );
+  const cobradoPrevioUSD = Number(
+    cuotasDelProyectoOrdenadas
+      .filter((c) => c.estatus === 'Cobrado')
+      .reduce((acc, c) => acc + c.montoUSD, 0)
+      .toFixed(2)
+  );
+
+  const cuotasPosteriores = cuotasDelProyectoOrdenadas.filter(
+    (c) => c.numeroCuota > cuotaActual.numeroCuota && c.estatus !== 'Cobrado'
+  );
+
+  const saldoPendienteAntesUSD = Number(
+    (cuotaActual.montoUSD + cuotasPosteriores.reduce((acc, c) => acc + c.montoUSD, 0)).toFixed(2)
+  );
+
+  let montoAPagarAhoraUSD = cuotaActual.montoUSD;
+  let liquidaTotalidad = false;
+
+  if (modo === 'totalidad' || cuotasPosteriores.length === 0) {
+    if (modo === 'totalidad') {
+      montoAPagarAhoraUSD = saldoPendienteAntesUSD;
+      liquidaTotalidad = true;
+    } else {
+      // Última cuota o Pago al Contado (1 de 1): al cobrarse liquida el 100%
+      montoAPagarAhoraUSD = cuotaActual.montoUSD;
+      liquidaTotalidad = saldoPendienteAntesUSD - cuotaActual.montoUSD <= 0.01;
+    }
+  } else if (modo === 'mayor_porcentaje' && opciones?.porcentajeProyectoDeseado !== undefined) {
+    const montoCalculado = Number(
+      ((montoTotalProyectoUSD * opciones.porcentajeProyectoDeseado) / 100).toFixed(2)
+    );
+    if (montoCalculado >= saldoPendienteAntesUSD - 0.01) {
+      montoAPagarAhoraUSD = saldoPendienteAntesUSD;
+      liquidaTotalidad = true;
+    } else {
+      montoAPagarAhoraUSD = Math.max(cuotaActual.montoUSD, montoCalculado);
+    }
+  }
+
+  const saldoRestanteDespuesUSD = liquidaTotalidad
+    ? 0
+    : Number(Math.max(0, saldoPendienteAntesUSD - montoAPagarAhoraUSD).toFixed(2));
+
+  const porcentajeEstePago =
+    montoTotalProyectoUSD > 0
+      ? Number(((montoAPagarAhoraUSD / montoTotalProyectoUSD) * 100).toFixed(1))
+      : 0;
+
+  const porcentajeAcumuladoDespues =
+    montoTotalProyectoUSD > 0
+      ? Math.min(
+          100,
+          Math.round(((cobradoPrevioUSD + montoAPagarAhoraUSD) / montoTotalProyectoUSD) * 100)
+        )
+      : 100;
+
+  const porcentajeRestanteDespues = Math.max(0, 100 - porcentajeAcumuladoDespues);
+
+  const cuotasReajustadas: CuotaReajustadaPreview[] = [];
+
+  if (liquidaTotalidad) {
+    // La cuota actual y todas las cuotas posteriores quedan cubiertas al 100%
+    cuotasReajustadas.push({
+      cuotaId: cuotaActual.id,
+      numeroCuota: cuotaActual.numeroCuota,
+      totalCuotas: cuotaActual.totalCuotas,
+      montoNuevoUSD: cuotaActual.montoUSD,
+      porcentajeNuevo:
+        montoTotalProyectoUSD > 0
+          ? Math.round((cuotaActual.montoUSD / montoTotalProyectoUSD) * 100)
+          : 100,
+      seraCobrada: true
+    });
+    cuotasPosteriores.forEach((cp) => {
+      cuotasReajustadas.push({
+        cuotaId: cp.id,
+        numeroCuota: cp.numeroCuota,
+        totalCuotas: cp.totalCuotas,
+        montoNuevoUSD: cp.montoUSD,
+        porcentajeNuevo:
+          montoTotalProyectoUSD > 0 ? Math.round((cp.montoUSD / montoTotalProyectoUSD) * 100) : 0,
+        seraCobrada: true
+      });
+    });
+  } else {
+    cuotasReajustadas.push({
+      cuotaId: cuotaActual.id,
+      numeroCuota: cuotaActual.numeroCuota,
+      totalCuotas: cuotaActual.totalCuotas,
+      montoNuevoUSD: montoAPagarAhoraUSD,
+      porcentajeNuevo:
+        montoTotalProyectoUSD > 0
+          ? Math.round((montoAPagarAhoraUSD / montoTotalProyectoUSD) * 100)
+          : 0,
+      seraCobrada: true
+    });
+
+    const sumaPosteriorOriginalUSD = cuotasPosteriores.reduce((acc, c) => acc + c.montoUSD, 0);
+    let acumuladoAsignado = 0;
+
+    cuotasPosteriores.forEach((cp, index) => {
+      let nuevoMonto = 0;
+      if (index === cuotasPosteriores.length - 1) {
+        nuevoMonto = Number(Math.max(0, saldoRestanteDespuesUSD - acumuladoAsignado).toFixed(2));
+      } else if (sumaPosteriorOriginalUSD > 0) {
+        nuevoMonto = Number(
+          ((saldoRestanteDespuesUSD * cp.montoUSD) / sumaPosteriorOriginalUSD).toFixed(2)
+        );
+      } else {
+        nuevoMonto = Number((saldoRestanteDespuesUSD / cuotasPosteriores.length).toFixed(2));
+      }
+      acumuladoAsignado = Number((acumuladoAsignado + nuevoMonto).toFixed(2));
+
+      cuotasReajustadas.push({
+        cuotaId: cp.id,
+        numeroCuota: cp.numeroCuota,
+        totalCuotas: cp.totalCuotas,
+        montoNuevoUSD: nuevoMonto,
+        porcentajeNuevo:
+          montoTotalProyectoUSD > 0 ? Math.round((nuevoMonto / montoTotalProyectoUSD) * 100) : 0,
+        seraCobrada: false
+      });
+    });
+  }
+
+  return {
+    montoTotalProyectoUSD,
+    saldoPendienteAntesUSD,
+    montoAPagarAhoraUSD,
+    porcentajeEstePago,
+    porcentajeAcumuladoDespues,
+    saldoRestanteDespuesUSD,
+    porcentajeRestanteDespues,
+    liquidaTotalidad,
+    cuotasReajustadas
+  };
+};
+
 /**
  * REGLA 4: Cálculo de KPIs del Tablero Principal
  */

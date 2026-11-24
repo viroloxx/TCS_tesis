@@ -56,12 +56,15 @@ export const exportarOImprimirResumenProyecto = ({
       const hito = entregablesProyecto.find((e) => e.id === c.entregableId);
       const esCobrada = c.estatus === 'Cobrado';
       const esActual = c.id === cuotaActual.id;
+      const pctCuota =
+        montoTotalProyectoUSD > 0 ? Math.round((c.montoUSD / montoTotalProyectoUSD) * 100) : 0;
 
       return `
         <tr style="${esActual ? 'background-color: #f0fdf4;' : ''}">
           <td>
             <div style="font-weight: 700; color: #0f172a;">
               Cuota #${c.numeroCuota} de ${c.totalCuotas}
+              <span style="font-size: 10.5px; color: #0369a1; font-weight: 700; margin-left: 4px;">(${pctCuota}%)</span>
               ${esActual ? '<span class="tag-actual">En Vista</span>' : ''}
             </div>
             <div style="font-size: 11px; color: #475569; margin-top: 2px;">${c.descripcion}</div>
