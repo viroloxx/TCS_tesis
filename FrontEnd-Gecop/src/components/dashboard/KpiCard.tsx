@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card } from '../common/Card';
-import { MaskedAmount } from '../common/MaskedAmount';
+import { formatearMonedaVE, enmascararMonto, convertirUsdAves } from '../../utils/formatters';
 
 interface KpiCardProps {
   titulo: string;
@@ -28,80 +28,140 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   const [revelarPorHover, setRevelarPorHover] = useState<boolean>(false);
   const colorBorde = bordeColor || (esAlerta ? '#ef4444' : undefined);
 
+  const ocultarMonto = !revelarPorHover;
+  const montoVES = convertirUsdAves(montoUSD, tasaBCV);
+  const textoVES = enmascararMonto(formatearMonedaVE(montoVES, 'VES'), ocultarMonto);
+  const textoUSD = enmascararMonto(formatearMonedaVE(montoUSD, 'USD'), ocultarMonto);
+
   return (
     <Card
       style={{
         borderLeft: colorBorde ? `5px solid ${colorBorde}` : undefined,
-        marginBottom: 0
+        marginBottom: 0,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between'
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
+      <div>
+        {/* Fila superior fija: Título a la izquierda y botón de ojo con posición/tamaño bloqueado a la derecha */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <span
+            style={{
+              fontSize: '0.84rem',
+              fontWeight: 700,
+              color: '#64748b',
+              textTransform: 'uppercase',
+              lineHeight: 1.25
+            }}
+          >
             {titulo}
           </span>
-          <div style={{ marginTop: '8px' }}>
-            <MaskedAmount
-              montoUSD={montoUSD}
-              tasaBCV={tasaBCV}
-              mostrarVES={true}
-              tamano="xl"
-              color={esAlerta ? '#dc2626' : '#0f172a'}
-              enmascarado={!revelarPorHover}
-            />
+
+          <div
+            onMouseEnter={() => setRevelarPorHover(true)}
+            onMouseLeave={() => setRevelarPorHover(false)}
+            title="Pasa el cursor por encima para revelar el monto"
+            style={{
+              width: '44px',
+              height: '44px',
+              minWidth: '44px',
+              minHeight: '44px',
+              flexShrink: 0,
+              borderRadius: '12px',
+              backgroundColor: revelarPorHover
+                ? (esAlerta ? '#fee2e2' : '#e0f2fe')
+                : (esAlerta ? '#fef2f2' : '#f1f5f9'),
+              border: revelarPorHover
+                ? `1.5px solid ${esAlerta ? '#ef4444' : '#38bdf8'}`
+                : '1.5px solid transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: revelarPorHover
+                ? (esAlerta ? '#dc2626' : '#0284c7')
+                : '#64748b',
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
+            }}
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
           </div>
         </div>
 
+        {/* Contenedor de montos con altura fija y ancho completo para evitar saltos o descuadres */}
         <div
-          onMouseEnter={() => setRevelarPorHover(true)}
-          onMouseLeave={() => setRevelarPorHover(false)}
-          title="Pasa el cursor por encima para revelar el monto"
           style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            backgroundColor: revelarPorHover
-              ? (esAlerta ? '#fee2e2' : '#e0f2fe')
-              : (esAlerta ? '#fef2f2' : '#f1f5f9'),
-            border: revelarPorHover
-              ? `1.5px solid ${esAlerta ? '#ef4444' : '#38bdf8'}`
-              : '1.5px solid transparent',
+            marginTop: '10px',
+            minHeight: '58px',
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
             justifyContent: 'center',
-            color: revelarPorHover
-              ? (esAlerta ? '#dc2626' : '#0284c7')
-              : '#64748b',
-            cursor: 'pointer',
-            userSelect: 'none',
-            transition: 'all 0.2s ease'
+            overflow: 'hidden'
           }}
         >
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', 'Courier New', Courier, monospace",
+              fontWeight: 700,
+              fontSize: 'clamp(1.16rem, 1.42vw, 1.46rem)',
+              color: esAlerta ? '#dc2626' : '#0f172a',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap',
+              display: 'block'
+            }}
           >
-            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
+            {textoVES}
+          </span>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', 'Courier New', Courier, monospace",
+              fontWeight: 600,
+              fontSize: '0.90rem',
+              color: '#475569',
+              marginTop: '4px',
+              lineHeight: 1.3,
+              whiteSpace: 'nowrap',
+              display: 'block'
+            }}
+          >
+            Ref. {textoUSD}
+          </span>
         </div>
       </div>
 
       {(badgeTexto || detalleTexto) && (
         <div
           style={{
-            marginTop: '16px',
+            marginTop: '14px',
             paddingTop: '12px',
             borderTop: '1px solid #f1f5f9',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            gap: '8px',
             fontSize: '0.82rem'
           }}
         >
@@ -111,15 +171,16 @@ export const KpiCard: React.FC<KpiCardProps> = ({
                 backgroundColor: `${badgeColor}15`,
                 color: badgeColor,
                 fontWeight: 700,
-                padding: '2px 8px',
-                borderRadius: '6px'
+                padding: '3px 8px',
+                borderRadius: '6px',
+                whiteSpace: 'nowrap'
               }}
             >
               {badgeTexto}
             </span>
           )}
           {detalleTexto && (
-            <span style={{ color: '#64748b', fontWeight: 500 }}>
+            <span style={{ color: '#64748b', fontWeight: 500, textAlign: 'right' }}>
               {detalleTexto}
             </span>
           )}

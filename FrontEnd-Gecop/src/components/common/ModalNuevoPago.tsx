@@ -117,16 +117,18 @@ export const ModalNuevoPago: React.FC<ModalNuevoPagoProps> = ({
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
-          padding: '28px',
-          maxWidth: '560px',
-          width: '100%',
+          padding: '30px 34px',
+          maxWidth: '760px',
+          width: '94%',
+          maxHeight: '92vh',
+          overflowY: 'auto',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
           border: '1px solid #cbd5e1'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, color: '#0f172a' }}>
-            Autorizar Pago a Proveedor (CXP)
+            Autorizar Pago a Proveedor
           </h3>
           <button
             onClick={onClose}

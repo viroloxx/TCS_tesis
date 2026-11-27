@@ -22,7 +22,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
       }}
     >
-      {/* Header fijo superior de 60px */}
+      {/* Header fijo superior de 76px */}
       <Header
         sidebarOpen={!menuColapsado}
         onToggleSidebar={() => setMenuColapsado((prev) => !prev)}
@@ -30,7 +30,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
       />
 
       {/* Contenedor Cuerpo: Sidebar + Área de Contenido */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 60px)' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 'calc(100vh - 76px)' }}>
         <Sidebar
           collapsed={menuColapsado}
           onToggle={() => setMenuColapsado((prev) => !prev)}
@@ -41,6 +41,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
         <main
           style={{
             flex: 1,
+            minWidth: 0,
             padding: '30px 36px',
             maxWidth: '1600px',
             margin: '0 auto',

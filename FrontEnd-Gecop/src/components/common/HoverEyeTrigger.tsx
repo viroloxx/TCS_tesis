@@ -37,8 +37,10 @@ export const HoverEyeTrigger: React.FC<HoverEyeTriggerProps> = ({
       style={{
         display: 'inline-flex',
         alignItems: 'center',
+        justifyContent: 'center',
         gap: '8px',
         padding: '7px 14px',
+        minWidth: esClick && label ? '168px' : undefined,
         borderRadius: '10px',
         backgroundColor: active ? '#e0f2fe' : '#f1f5f9',
         border: `1.5px solid ${active ? '#0284c7' : '#cbd5e1'}`,
@@ -47,7 +49,8 @@ export const HoverEyeTrigger: React.FC<HoverEyeTriggerProps> = ({
         fontSize: '0.88rem',
         cursor: 'pointer',
         userSelect: 'none',
-        transition: 'all 0.2s ease'
+        whiteSpace: 'nowrap',
+        transition: 'background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease'
       }}
     >
       {esClick && active ? (

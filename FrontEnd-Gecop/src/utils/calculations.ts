@@ -148,11 +148,16 @@ export const calcularProyeccionMensual = (
   });
 };
 
-export type ModoCobroProyecto = 'cuota_normal' | 'mayor_porcentaje' | 'totalidad';
+export type ModoCobroProyecto =
+  | 'cuota_normal'
+  | 'mayor_porcentaje'
+  | 'monto_exacto'
+  | 'totalidad';
 
 export interface OpcionesCobroExtra {
   modo: ModoCobroProyecto;
   porcentajeProyectoDeseado?: number;
+  montoAdicionalUSD?: number;
 }
 
 export interface CuotaReajustadaPreview {
@@ -168,6 +173,7 @@ export interface ResultadoSimulacionCobro {
   montoTotalProyectoUSD: number;
   saldoPendienteAntesUSD: number;
   montoAPagarAhoraUSD: number;
+  montoAdicionalAplicadoUSD: number;
   porcentajeEstePago: number;
   porcentajeAcumuladoDespues: number;
   saldoRestanteDespuesUSD: number;
@@ -221,9 +227,20 @@ export const simularReajusteCuotasProyecto = (
       liquidaTotalidad = saldoPendienteAntesUSD - cuotaActual.montoUSD <= 0.01;
     }
   } else if (modo === 'mayor_porcentaje' && opciones?.porcentajeProyectoDeseado !== undefined) {
-    const montoCalculado = Number(
-      ((montoTotalProyectoUSD * opciones.porcentajeProyectoDeseado) / 100).toFixed(2)
-    );
+    const pctLimpio = Math.max(0, opciones.porcentajeProyectoDeseado);
+    const montoCalculado = Number(((montoTotalProyectoUSD * pctLimpio) / 100).toFixed(2));
+    // Nunca permite reducir la cuota establecida ni generar saldo restante negativo
+    const montoAcotado = Math.min(saldoPendienteAntesUSD, Math.max(cuotaActual.montoUSD, montoCalculado));
+    if (montoAcotado >= saldoPendienteAntesUSD - 0.01) {
+      montoAPagarAhoraUSD = saldoPendienteAntesUSD;
+      liquidaTotalidad = true;
+    } else {
+      montoAPagarAhoraUSD = montoAcotado;
+    }
+  } else if (modo === 'monto_exacto' && opciones?.montoAdicionalUSD !== undefined) {
+    const extraSeguro = Math.max(0, Number(opciones.montoAdicionalUSD.toFixed(2)));
+    const montoCalculado = Number((cuotaActual.montoUSD + extraSeguro).toFixed(2));
+    // Nunca permite reducir la cuota establecida ni generar saldo restante negativo
     if (montoCalculado >= saldoPendienteAntesUSD - 0.01) {
       montoAPagarAhoraUSD = saldoPendienteAntesUSD;
       liquidaTotalidad = true;
@@ -231,6 +248,10 @@ export const simularReajusteCuotasProyecto = (
       montoAPagarAhoraUSD = Math.max(cuotaActual.montoUSD, montoCalculado);
     }
   }
+
+  const montoAdicionalAplicadoUSD = Number(
+    Math.max(0, montoAPagarAhoraUSD - cuotaActual.montoUSD).toFixed(2)
+  );
 
   const saldoRestanteDespuesUSD = liquidaTotalidad
     ? 0
@@ -322,6 +343,7 @@ export const simularReajusteCuotasProyecto = (
     montoTotalProyectoUSD,
     saldoPendienteAntesUSD,
     montoAPagarAhoraUSD,
+    montoAdicionalAplicadoUSD,
     porcentajeEstePago,
     porcentajeAcumuladoDespues,
     saldoRestanteDespuesUSD,

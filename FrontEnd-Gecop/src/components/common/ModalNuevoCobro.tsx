@@ -21,10 +21,11 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
   const { cuotasCXC, proyectos, tasaBCV, marcarCuotaCobrada } = useData();
   const [cuotaSeleccionadaId, setCuotaSeleccionadaId] = useState<string>('');
 
-  // Estado para sección opcional de pago mayor al porcentaje establecido o liquidación total
+  // Estado para sección opcional de pago mayor al porcentaje establecido, monto exacto o liquidación total
   const [usarPagoPersonalizado, setUsarPagoPersonalizado] = useState<boolean>(false);
   const [modoCobro, setModoCobro] = useState<ModoCobroProyecto>('cuota_normal');
   const [porcentajeDeseado, setPorcentajeDeseado] = useState<number>(50);
+  const [montoAdicionalInput, setMontoAdicionalInput] = useState<string>('');
 
   // Obtener fecha actual en formato local YYYY-MM-DD
   const getFechaHoy = (): string => {
@@ -63,6 +64,7 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
       }
       setUsarPagoPersonalizado(false);
       setModoCobro('cuota_normal');
+      setMontoAdicionalInput('');
       setFechaCobro(fechaHoy);
       setReferencia('');
     }
@@ -109,24 +111,39 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
       ? Number(((saldoPendienteProyectoUSD / montoTotalProyectoUSD) * 100).toFixed(1))
       : 100;
 
-  const pctMinMayor = Math.min(
-    Math.floor(pctMaxRestante),
-    Math.max(Math.floor(pctCuotaEstablecida) + 1, Math.round(pctCuotaEstablecida) + 1)
-  );
-  const pctMaxMayor = Math.max(pctMinMayor, Math.floor(pctMaxRestante) - 1);
+  // Base mínima fija de la barra = porcentaje establecido de la cuota (solo se puede mover hacia la derecha, nunca reducir)
+  const pctBaseCuota = Math.min(Math.floor(pctMaxRestante), Math.round(pctCuotaEstablecida));
+  const pctMaxMayor = Math.max(pctBaseCuota, Math.floor(pctMaxRestante) - 1);
   const puedePagarMayorPorcentaje =
-    !esPagoAlContado && cuotasPosteriores.length > 0 && pctMaxMayor >= pctMinMayor && pctMinMayor < pctMaxRestante;
+    !esPagoAlContado && cuotasPosteriores.length > 0 && pctMaxMayor > pctBaseCuota;
 
-  // Ajustar porcentaje inicial válido cuando cambia la cuota o se activa el modo mayor porcentaje
+  // Monto máximo adicional en USD y VES que se puede abonar sin generar saldo negativo
+  const montoMaximoAdicionalUSD = useMemo(() => {
+    if (!cuotaSeleccionada) return 0;
+    return Number(Math.max(0, saldoPendienteProyectoUSD - cuotaSeleccionada.montoUSD).toFixed(2));
+  }, [cuotaSeleccionada, saldoPendienteProyectoUSD]);
+
+  const montoMaximoAdicionalVES = useMemo(() => {
+    return Number((montoMaximoAdicionalUSD * tasaBCV).toFixed(2));
+  }, [montoMaximoAdicionalUSD, tasaBCV]);
+
+  const montoAdicionalNumericoVES = useMemo(() => {
+    const parsed = parseFloat(montoAdicionalInput.replace(',', '.'));
+    if (isNaN(parsed) || parsed <= 0) return 0;
+    return Math.min(montoMaximoAdicionalVES, Number(parsed.toFixed(2)));
+  }, [montoAdicionalInput, montoMaximoAdicionalVES]);
+
+  const montoAdicionalNumericoUSD = useMemo(() => {
+    if (montoAdicionalNumericoVES <= 0 || tasaBCV <= 0) return 0;
+    const convertido = Number((montoAdicionalNumericoVES / tasaBCV).toFixed(2));
+    return Math.min(montoMaximoAdicionalUSD, Math.max(0, convertido));
+  }, [montoAdicionalNumericoVES, tasaBCV, montoMaximoAdicionalUSD]);
+
+  // Inicializar la barra en el extremo izquierdo (cuota base) para que solo se desplace hacia la derecha
   useEffect(() => {
-    if (puedePagarMayorPorcentaje) {
-      const sugerido = Math.min(
-        pctMaxMayor,
-        Math.max(pctMinMayor, Math.round((pctMinMayor + pctMaxMayor) / 2))
-      );
-      setPorcentajeDeseado(sugerido);
-    }
-  }, [cuotaSeleccionadaId, puedePagarMayorPorcentaje, pctMinMayor, pctMaxMayor]);
+    setPorcentajeDeseado(pctBaseCuota);
+    setMontoAdicionalInput('');
+  }, [cuotaSeleccionadaId, pctBaseCuota]);
 
   const modoEfectivo: ModoCobroProyecto =
     esPagoAlContado || !usarPagoPersonalizado ? 'cuota_normal' : modoCobro;
@@ -136,9 +153,11 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
     return simularReajusteCuotasProyecto(cuotasDelProyecto, cuotaSeleccionada.id, {
       modo: modoEfectivo,
       porcentajeProyectoDeseado:
-        modoEfectivo === 'mayor_porcentaje' ? porcentajeDeseado : undefined
+        modoEfectivo === 'mayor_porcentaje' ? porcentajeDeseado : undefined,
+      montoAdicionalUSD:
+        modoEfectivo === 'monto_exacto' ? montoAdicionalNumericoUSD : undefined
     });
-  }, [cuotasDelProyecto, cuotaSeleccionada, modoEfectivo, porcentajeDeseado]);
+  }, [cuotasDelProyecto, cuotaSeleccionada, modoEfectivo, porcentajeDeseado, montoAdicionalNumericoUSD]);
 
   if (!isOpen) return null;
 
@@ -153,8 +172,11 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
     setUsarPagoPersonalizado(activar);
     if (!activar) {
       setModoCobro('cuota_normal');
+      setPorcentajeDeseado(pctBaseCuota);
+      setMontoAdicionalInput('');
     } else {
-      setModoCobro(puedePagarMayorPorcentaje ? 'mayor_porcentaje' : 'totalidad');
+      setPorcentajeDeseado(pctBaseCuota);
+      setModoCobro(puedePagarMayorPorcentaje ? 'mayor_porcentaje' : 'monto_exacto');
     }
   };
 
@@ -174,13 +196,24 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
     }
 
     if (modoEfectivo === 'mayor_porcentaje') {
-      if (
-        isNaN(porcentajeDeseado) ||
-        porcentajeDeseado <= pctCuotaEstablecida ||
-        porcentajeDeseado >= pctMaxRestante
-      ) {
+      if (isNaN(porcentajeDeseado) || porcentajeDeseado <= pctBaseCuota) {
         alert(
-          `El porcentaje debe ser mayor al establecido (${pctCuotaEstablecida}%) y menor al saldo restante (${pctMaxRestante}%). Si desea cancelar el 100%, seleccione "Pagar Totalidad".`
+          `Mueva la barra hacia la derecha para indicar un porcentaje mayor a la cuota base (${pctBaseCuota}%), o desmarque la opción para cobrar la cuota normal.`
+        );
+        return;
+      }
+      if (porcentajeDeseado >= pctMaxRestante) {
+        alert(
+          `El porcentaje no puede superar el máximo parcial (${pctMaxMayor}%). Si desea cancelar el 100%, seleccione "Pagar totalidad".`
+        );
+        return;
+      }
+    }
+
+    if (modoEfectivo === 'monto_exacto') {
+      if (montoAdicionalNumericoVES <= 0 || montoAdicionalNumericoUSD <= 0) {
+        alert(
+          'Ingrese un monto adicional exacto mayor a Bs. 0,00 para agregar a la factura, o desmarque la opción para cobrar la cuota normal.'
         );
         return;
       }
@@ -190,14 +223,20 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
     marcarCuotaCobrada(cuotaSeleccionadaId, fechaCobro, bancoDestino, referencia, {
       modo: modoEfectivo,
       porcentajeProyectoDeseado:
-        modoEfectivo === 'mayor_porcentaje' ? porcentajeDeseado : undefined
+        modoEfectivo === 'mayor_porcentaje' ? porcentajeDeseado : undefined,
+      montoAdicionalUSD:
+        modoEfectivo === 'monto_exacto' ? montoAdicionalNumericoUSD : undefined
     });
 
     if (onCobroExitoso && cuota) {
       if (esPagoAlContado) {
         onCobroExitoso(`Pago al Contado (100%) — ${proyectoSeleccionado?.nombre || cuota.descripcion}`);
-      } else if (modoEfectivo === 'totalidad') {
+      } else if (modoEfectivo === 'totalidad' || simulacion?.liquidaTotalidad) {
         onCobroExitoso(`Liquidación Total (100%) — ${proyectoSeleccionado?.nombre || cuota.descripcion}`);
+      } else if (modoEfectivo === 'monto_exacto' && simulacion) {
+        onCobroExitoso(
+          `Cuota #${cuota.numeroCuota} + abono exacto de ${formatearMonedaVE(simulacion.montoAdicionalAplicadoUSD * tasaBCV, 'VES')} (${simulacion.porcentajeEstePago}% del contrato) — cuotas restantes reajustadas`
+        );
       } else if (modoEfectivo === 'mayor_porcentaje') {
         onCobroExitoso(
           `Cuota #${cuota.numeroCuota} con abono mayor (${porcentajeDeseado}% del contrato) — cuotas restantes reajustadas`
@@ -231,9 +270,9 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
-          padding: '28px',
-          maxWidth: '610px',
-          width: '100%',
+          padding: '30px 34px',
+          maxWidth: '780px',
+          width: '94%',
           maxHeight: '92vh',
           overflowY: 'auto',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
@@ -338,11 +377,13 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
               <div style={{ fontSize: '0.85rem', color: '#166534', fontWeight: 600 }}>
                 {esPagoAlContado
                   ? `Pago al Contado (${proyectoSeleccionado?.nombre} — 100% del contrato):`
-                  : modoEfectivo === 'totalidad'
-                  ? `Monto Total a Liquidar (${proyectoSeleccionado?.nombre} — 100% del contrato):`
-                  : modoEfectivo === 'mayor_porcentaje'
-                  ? `Monto Ajustado a Cobrar (${proyectoSeleccionado?.nombre} — ${porcentajeDeseado}% del contrato):`
-                  : `Detalles del Cobro (${proyectoSeleccionado?.nombre} — Cuota #${cuotaSeleccionada.numeroCuota} de ${cuotaSeleccionada.totalCuotas} • ${Math.round(pctCuotaEstablecida)}%):`}
+                  : modoEfectivo === 'totalidad' || simulacion?.liquidaTotalidad
+                    ? `Monto Total a Liquidar (${proyectoSeleccionado?.nombre} — 100% del contrato):`
+                    : modoEfectivo === 'monto_exacto' && simulacion && simulacion.montoAdicionalAplicadoUSD > 0
+                      ? `Factura + Abono Exacto (${proyectoSeleccionado?.nombre} — ${simulacion.porcentajeEstePago}% del contrato):`
+                      : modoEfectivo === 'mayor_porcentaje' && porcentajeDeseado > pctBaseCuota
+                        ? `Monto Ajustado a Cobrar (${proyectoSeleccionado?.nombre} — ${porcentajeDeseado}% del contrato):`
+                        : `Detalles del Cobro (${proyectoSeleccionado?.nombre} — Cuota #${cuotaSeleccionada.numeroCuota} de ${cuotaSeleccionada.totalCuotas} • ${Math.round(pctCuotaEstablecida)}%):`}
               </div>
               <div
                 style={{
@@ -436,18 +477,28 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
                   style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#0284c7' }}
                 />
                 <span>
-                  Opcional: El cliente pagará más del porcentaje establecido ({Math.round(pctCuotaEstablecida)}%) o la totalidad
+                  En caso de que el cliente quisiera abonar extra de las cuotas
                 </span>
               </label>
 
               {usarPagoPersonalizado && (
                 <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #bae6fd' }}>
-                  {/* Selector de modalidad opcional */}
-                  <div style={{ display: 'grid', gridTemplateColumns: puedePagarMayorPorcentaje ? '1fr 1fr' : '1fr', gap: '10px', marginBottom: '14px' }}>
+                  {/* Selector de modalidad opcional (3 opciones claras) */}
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: puedePagarMayorPorcentaje ? 'repeat(3, 1fr)' : 'repeat(2, 1fr)',
+                      gap: '10px',
+                      marginBottom: '14px'
+                    }}
+                  >
                     {puedePagarMayorPorcentaje && (
                       <button
                         type="button"
-                        onClick={() => setModoCobro('mayor_porcentaje')}
+                        onClick={() => {
+                          setModoCobro('mayor_porcentaje');
+                          setPorcentajeDeseado((prev) => Math.max(pctBaseCuota, Math.min(pctMaxMayor, prev)));
+                        }}
                         style={{
                           padding: '10px 12px',
                           borderRadius: '10px',
@@ -455,17 +506,38 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
                           backgroundColor: modoCobro === 'mayor_porcentaje' ? '#e0f2fe' : '#ffffff',
                           color: modoCobro === 'mayor_porcentaje' ? '#0369a1' : '#334155',
                           fontWeight: 700,
-                          fontSize: '0.85rem',
+                          fontSize: '0.84rem',
                           cursor: 'pointer',
                           textAlign: 'left'
                         }}
                       >
-                        <div>Pagar mayor porcentaje</div>
-                        <div style={{ fontSize: '0.76rem', fontWeight: 500, marginTop: '2px', color: '#475569' }}>
-                          Reacomoda cuotas restantes
+                        <div>Pagar mayor %</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 500, marginTop: '2px', color: '#475569' }}>
+
                         </div>
                       </button>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={() => setModoCobro('monto_exacto')}
+                      style={{
+                        padding: '10px 12px',
+                        borderRadius: '10px',
+                        border: `2px solid ${modoCobro === 'monto_exacto' ? '#7c3aed' : '#cbd5e1'}`,
+                        backgroundColor: modoCobro === 'monto_exacto' ? '#f5f3ff' : '#ffffff',
+                        color: modoCobro === 'monto_exacto' ? '#5b21b6' : '#334155',
+                        fontWeight: 700,
+                        fontSize: '0.84rem',
+                        cursor: 'pointer',
+                        textAlign: 'left'
+                      }}
+                    >
+                      <div>Abonar monto exacto (Bs.)</div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 500, marginTop: '2px', color: '#475569' }}>
+                        Escribir monto manual a factura
+                      </div>
+                    </button>
 
                     <button
                       type="button"
@@ -477,26 +549,26 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
                         backgroundColor: modoCobro === 'totalidad' ? '#ecfdf5' : '#ffffff',
                         color: modoCobro === 'totalidad' ? '#065f46' : '#334155',
                         fontWeight: 700,
-                        fontSize: '0.85rem',
+                        fontSize: '0.84rem',
                         cursor: 'pointer',
                         textAlign: 'left'
                       }}
                     >
                       <div>Pagar totalidad (100%)</div>
-                      <div style={{ fontSize: '0.76rem', fontWeight: 500, marginTop: '2px', color: '#475569' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 500, marginTop: '2px', color: '#475569' }}>
                         Liquida todo y queda Cobrado
                       </div>
                     </button>
                   </div>
 
-                  {/* Control de porcentaje si eligió mayor porcentaje */}
+                  {/* OPCIÓN 1: Control de porcentaje (base fija a la izquierda, solo se mueve hacia la derecha, cero negativos) */}
                   {modoCobro === 'mayor_porcentaje' && puedePagarMayorPorcentaje && (
                     <div
                       style={{
                         backgroundColor: '#ffffff',
                         border: '1px solid #cbd5e1',
                         borderRadius: '10px',
-                        padding: '12px'
+                        padding: '14px'
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '10px' }}>
@@ -506,18 +578,24 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <input
                             type="number"
-                            min={pctMinMayor}
+                            min={pctBaseCuota}
                             max={pctMaxMayor}
                             step={1}
                             value={porcentajeDeseado}
+                            onKeyDown={(e) => {
+                              if (['-', '+', 'e', 'E', '.', ','].includes(e.key)) {
+                                e.preventDefault();
+                              }
+                            }}
                             onChange={(e) => {
                               const val = Number(e.target.value);
                               if (!isNaN(val)) {
-                                setPorcentajeDeseado(Math.min(pctMaxMayor, Math.max(pctMinMayor, val)));
+                                // Nunca permite bajar de la cuota establecida ni superar el máximo parcial
+                                setPorcentajeDeseado(Math.min(pctMaxMayor, Math.max(pctBaseCuota, Math.round(val))));
                               }
                             }}
                             style={{
-                              width: '72px',
+                              width: '74px',
                               padding: '5px 8px',
                               borderRadius: '8px',
                               border: '1.5px solid #0284c7',
@@ -534,17 +612,20 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
 
                       <input
                         type="range"
-                        min={pctMinMayor}
+                        min={pctBaseCuota}
                         max={pctMaxMayor}
                         step={1}
                         value={porcentajeDeseado}
-                        onChange={(e) => setPorcentajeDeseado(Number(e.target.value))}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setPorcentajeDeseado(Math.min(pctMaxMayor, Math.max(pctBaseCuota, val)));
+                        }}
                         style={{ width: '100%', cursor: 'pointer', accentColor: '#0284c7' }}
                       />
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#64748b', marginTop: '2px', fontFamily: "'JetBrains Mono', monospace" }}>
-                        <span>Mín: {pctMinMayor}% (Cuota actual: {Math.round(pctCuotaEstablecida)}%)</span>
-                        <span>Máx parcial: {pctMaxMayor}%</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.76rem', color: '#475569', marginTop: '4px', fontFamily: "'JetBrains Mono', monospace" }}>
+                        <span>Base fija: {pctBaseCuota}% (no se puede reducir)</span>
+                        <span>Máx. parcial: {pctMaxMayor}% →</span>
                       </div>
 
                       {/* Vista previa del reajuste de cuotas y restante */}
@@ -560,6 +641,14 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
                           <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>
                             Ajuste automático de porcentajes y saldo restante:
                           </div>
+                          {simulacion.montoAdicionalAplicadoUSD > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#0369a1', fontWeight: 700, marginBottom: '4px', gap: '8px', flexWrap: 'wrap' }}>
+                              <span>Abono adicional sobre la cuota base:</span>
+                              <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                +{formatearMonedaVE(simulacion.montoAdicionalAplicadoUSD * tasaBCV, 'VES')} (Ref. +{formatearMonedaVE(simulacion.montoAdicionalAplicadoUSD, 'USD')})
+                              </span>
+                            </div>
+                          )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', color: '#047857', fontWeight: 700, marginBottom: '4px' }}>
                             <span>Avance total tras este cobro:</span>
                             <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
@@ -606,7 +695,168 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
                     </div>
                   )}
 
-                  {/* Vista previa si eligió Liquidar Totalidad */}
+                  {/* OPCIÓN 2: Abono manual por monto exacto en Bolívares agregado directamente a la factura */}
+                  {modoCobro === 'monto_exacto' && (
+                    <div
+                      style={{
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #ddd6fe',
+                        borderRadius: '10px',
+                        padding: '14px'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', gap: '10px', flexWrap: 'wrap' }}>
+                        <label style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>
+                          Monto exacto adicional a agregar a esta factura (Bs.):
+                        </label>
+                        <span style={{ fontSize: '0.76rem', color: '#64748b', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                          Máx. permitido: {formatearMonedaVE(montoMaximoAdicionalVES, 'VES')}
+                        </span>
+                      </div>
+
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        <span
+                          style={{
+                            position: 'absolute',
+                            left: '12px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontWeight: 800,
+                            color: '#5b21b6',
+                            fontSize: '0.96rem'
+                          }}
+                        >
+                          +Bs.
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={montoMaximoAdicionalVES}
+                          step="0.01"
+                          placeholder="Escriba el monto adicional en Bolívares"
+                          value={montoAdicionalInput}
+                          onKeyDown={(e) => {
+                            if (['-', '+', 'e', 'E'].includes(e.key)) {
+                              e.preventDefault();
+                            }
+                          }}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              setMontoAdicionalInput('');
+                              return;
+                            }
+                            const num = parseFloat(raw);
+                            if (isNaN(num) || num < 0) return;
+                            if (num > montoMaximoAdicionalVES) {
+                              setMontoAdicionalInput(String(montoMaximoAdicionalVES));
+                            } else {
+                              setMontoAdicionalInput(raw);
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '10px 14px 10px 58px',
+                            borderRadius: '8px',
+                            border: '1.5px solid #7c3aed',
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontWeight: 800,
+                            fontSize: '1rem',
+                            color: '#4c1d95',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+
+                      {/* Vista previa de ajuste de factura, porcentaje equivalente y restante */}
+                      {simulacion && (
+                        <div
+                          style={{
+                            marginTop: '12px',
+                            paddingTop: '10px',
+                            borderTop: '1px dashed #ddd6fe',
+                            fontSize: '0.82rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#334155', fontWeight: 600, marginBottom: '4px', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>Cuota base de factura ({Math.round(pctCuotaEstablecida)}%):</span>
+                            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                              {formatearMonedaVE(cuotaSeleccionada.montoUSD * tasaBCV, 'VES')} / Ref. {formatearMonedaVE(cuotaSeleccionada.montoUSD, 'USD')}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#6d28d9', fontWeight: 700, marginBottom: '4px', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>+ Abono exacto agregado a factura:</span>
+                            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                              +{formatearMonedaVE(simulacion.montoAdicionalAplicadoUSD * tasaBCV, 'VES')} / Ref. +{formatearMonedaVE(simulacion.montoAdicionalAplicadoUSD, 'USD')}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', color: '#047857', fontWeight: 800, marginBottom: '6px', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>Nuevo porcentaje de esta factura ({simulacion.porcentajeEstePago}% del contrato):</span>
+                            <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                              {simulacion.porcentajeAcumuladoDespues}% Cobrado total
+                            </span>
+                          </div>
+
+                          {simulacion.liquidaTotalidad ? (
+                            <div
+                              style={{
+                                backgroundColor: '#ecfdf5',
+                                border: '1px solid #86efac',
+                                borderRadius: '8px',
+                                padding: '8px 10px',
+                                color: '#065f46',
+                                fontWeight: 700,
+                                marginTop: '6px'
+                              }}
+                            >
+                              ✓ Este abono cubre el 100% del saldo pendiente. El restante queda en Bs. 0,00 (Ref. $0,00) y el proyecto pasará directamente a Cobrado.
+                            </div>
+                          ) : (
+                            <>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309', fontWeight: 700, marginBottom: '6px', gap: '8px', flexWrap: 'wrap' }}>
+                                <span>Restante del proyecto ({simulacion.porcentajeRestanteDespues}%):</span>
+                                <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                  {formatearMonedaVE(simulacion.saldoRestanteDespuesUSD * tasaBCV, 'VES')} (Ref. {formatearMonedaVE(simulacion.saldoRestanteDespuesUSD, 'USD')})
+                                </span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                                {simulacion.cuotasReajustadas
+                                  .filter((r) => !r.seraCobrada)
+                                  .map((r) => (
+                                    <div
+                                      key={r.cuotaId}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        gap: '8px',
+                                        flexWrap: 'wrap',
+                                        backgroundColor: '#fffbeb',
+                                        border: '1px solid #fde68a',
+                                        borderRadius: '6px',
+                                        padding: '5px 8px',
+                                        fontSize: '0.78rem',
+                                        color: '#92400e',
+                                        fontWeight: 600
+                                      }}
+                                    >
+                                      <span>
+                                        Cuota #{r.numeroCuota} de {r.totalCuotas} (Nuevo: {r.porcentajeNuevo}%)
+                                      </span>
+                                      <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                                        {formatearMonedaVE(r.montoNuevoUSD * tasaBCV, 'VES')} / Ref. {formatearMonedaVE(r.montoNuevoUSD, 'USD')}
+                                      </span>
+                                    </div>
+                                  ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* OPCIÓN 3: Vista previa si eligió Liquidar Totalidad */}
                   {modoCobro === 'totalidad' && simulacion && (
                     <div
                       style={{
@@ -722,11 +972,13 @@ export const ModalNuevoCobro: React.FC<ModalNuevoCobroProps> = ({
               Cancelar
             </Button>
             <Button variant="success" size="lg" type="submit">
-              {modoEfectivo === 'totalidad' || esPagoAlContado
+              {modoEfectivo === 'totalidad' || esPagoAlContado || simulacion?.liquidaTotalidad
                 ? 'Confirmar Liquidación Total (100%)'
-                : modoEfectivo === 'mayor_porcentaje'
-                ? 'Confirmar Abono y Reajustar Cuotas'
-                : 'Confirmar y Liberar Candado CXP'}
+                : modoEfectivo === 'monto_exacto'
+                  ? 'Agregar Abono a Factura y Reajustar'
+                  : modoEfectivo === 'mayor_porcentaje'
+                    ? 'Confirmar Abono y Reajustar Cuotas'
+                    : 'Confirmar y Liberar Candado CXP'}
             </Button>
           </div>
         </form>

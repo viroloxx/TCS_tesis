@@ -124,10 +124,10 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
         style={{
           backgroundColor: '#ffffff',
           borderRadius: '16px',
-          padding: '28px',
-          maxWidth: '800px',
-          width: '100%',
-          maxHeight: '90vh',
+          padding: '32px 36px',
+          maxWidth: '1080px',
+          width: '96%',
+          maxHeight: '92vh',
           overflowY: 'auto',
           boxShadow: '0 20px 30px -5px rgba(0, 0, 0, 0.25)',
           border: '1px solid #cbd5e1'
@@ -215,8 +215,8 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
                     ? '✓ Pago al Contado Verificado'
                     : '✓ Detalle de Factura Verificada'
                   : esPagoAlContado
-                  ? 'Pago Único al Contado (100%)'
-                  : `Cuota en Turno (#${cuota.numeroCuota} de ${cuota.totalCuotas})`}
+                    ? 'Pago Único al Contado (100%)'
+                    : `Cuota en Turno (#${cuota.numeroCuota} de ${cuota.totalCuotas})`}
               </span>
               <Badge
                 label={cuota.estatus === 'Cobrado' ? 'Cobrado' : cuota.estatus}
@@ -307,7 +307,7 @@ export const ModalResumenCobro: React.FC<ModalResumenCobroProps> = ({
             }}
           >
             <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', marginBottom: '10px' }}>
-              Información Importante del Cliente y PMO
+              Información Importante del Cliente
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.86rem' }}>

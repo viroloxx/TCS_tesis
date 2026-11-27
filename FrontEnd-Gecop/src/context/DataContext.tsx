@@ -197,6 +197,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             comentarioActual = 'Liquidación total anticipada del proyecto (100% cobrado).';
           } else if (cuota.totalCuotas === 1) {
             comentarioActual = 'Pago al Contado liquidado en su totalidad (100% cobrado).';
+          } else if (modo === 'monto_exacto' && simulacion) {
+            const extraFmt = simulacion.montoAdicionalAplicadoUSD.toLocaleString('es-VE', {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2
+            });
+            comentarioActual = simulacion.liquidaTotalidad
+              ? `Abono exacto adicional de $${extraFmt} agregado a la factura, liquidando el 100% del proyecto.`
+              : `Abono exacto adicional de $${extraFmt} agregado a la factura (Total cuota: ${simulacion.porcentajeEstePago}% del contrato). Saldo restante reajustado en las cuotas pendientes.`;
           } else if (modo === 'mayor_porcentaje' && reajuste) {
             comentarioActual = `Pago superior al porcentaje establecido (${simulacion?.porcentajeEstePago}% del contrato). Saldo restante reajustado automáticamente en las cuotas pendientes.`;
           }

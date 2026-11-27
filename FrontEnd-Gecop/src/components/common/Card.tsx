@@ -36,6 +36,8 @@ export const Card: React.FC<CardProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
             marginBottom: '18px',
             borderBottom: '1px solid #f1f5f9',
             paddingBottom: '14px'

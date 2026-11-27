@@ -66,7 +66,8 @@ export const MaskedAmount: React.FC<MaskedAmountProps> = ({
               fontSize: getFontSize(),
               color: color,
               letterSpacing: '-0.02em',
-              lineHeight: 1.2
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap'
             }}
           >
             {displayVES}
@@ -77,7 +78,9 @@ export const MaskedAmount: React.FC<MaskedAmountProps> = ({
               fontWeight: 600,
               fontSize: '0.90rem',
               color: '#475569',
-              marginTop: '3px'
+              marginTop: '3px',
+              lineHeight: 1.25,
+              whiteSpace: 'nowrap'
             }}
           >
             Ref. {displayUSD}

@@ -188,8 +188,24 @@ export const CxcTable: React.FC = () => {
           </div>
         }
       >
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table
+            style={{
+              width: '100%',
+              minWidth: '1080px',
+              tableLayout: 'fixed',
+              borderCollapse: 'collapse',
+              textAlign: 'left'
+            }}
+          >
+            <colgroup>
+              <col style={{ width: '24%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '11%' }} />
+              <col style={{ width: '23%' }} />
+            </colgroup>
             <thead>
               <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                 <th style={{ padding: '14px 16px', fontSize: '0.92rem', color: '#475569', fontWeight: 700 }}>
@@ -207,7 +223,7 @@ export const CxcTable: React.FC = () => {
                 <th style={{ padding: '14px 16px', fontSize: '0.92rem', color: '#475569', fontWeight: 700 }}>
                   Estatus
                 </th>
-                <th style={{ padding: '14px 16px', fontSize: '0.92rem', color: '#475569', fontWeight: 700, textAlign: 'center', minWidth: '255px' }}>
+                <th style={{ padding: '14px 16px', fontSize: '0.92rem', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
                   Acción Operativa & Estado Odoo
                 </th>
               </tr>
@@ -331,24 +347,27 @@ export const CxcTable: React.FC = () => {
                       style={{
                         padding: '18px 16px',
                         fontWeight: 700,
-                        fontSize: '1.08rem',
+                        fontSize: '1.05rem',
                         color: '#1e293b',
-                        fontFamily: "'JetBrains Mono', monospace"
+                        fontFamily: "'JetBrains Mono', monospace",
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       {formatearFechaVE(cuotaEnTurno.fechaVencimiento)}
                     </td>
 
-                    {/* 4. Monto de la cuota en turno (oculto hasta pasar por el ojo de la tabla) */}
-                    <td style={{ padding: '18px 16px' }}>
-                      <MaskedAmount
-                        montoUSD={proyectoCompletamentePagado ? totalProyectoUSD : cuotaEnTurno.montoUSD}
-                        tasaBCV={tasaBCV}
-                        mostrarVES={true}
-                        tamano="md"
-                        color={proyectoCompletamentePagado ? '#059669' : '#0f172a'}
-                        enmascarado={!mostrarMontosTabla}
-                      />
+                    {/* 4. Monto de la cuota en turno (altura fija para cero descuadre) */}
+                    <td style={{ padding: '18px 16px', verticalAlign: 'middle' }}>
+                      <div style={{ minHeight: '46px', display: 'flex', alignItems: 'center' }}>
+                        <MaskedAmount
+                          montoUSD={proyectoCompletamentePagado ? totalProyectoUSD : cuotaEnTurno.montoUSD}
+                          tasaBCV={tasaBCV}
+                          mostrarVES={true}
+                          tamano="md"
+                          color={proyectoCompletamentePagado ? '#059669' : '#0f172a'}
+                          enmascarado={!mostrarMontosTabla}
+                        />
+                      </div>
                     </td>
 
                     {/* 5. Estatus */}

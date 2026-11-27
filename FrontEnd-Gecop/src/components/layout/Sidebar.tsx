@@ -42,206 +42,206 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       <aside
-      style={{
-        width: collapsed ? '72px' : '260px',
-        backgroundColor: '#0f172a', // Navy institucional TCS
-        color: '#ffffff',
-        transition: 'width 0.25s ease-in-out',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        flexShrink: 0,
-        height: 'calc(100vh - 60px)',
-        position: 'sticky',
-        top: '60px',
-        borderRight: '1px solid #1e293b',
-        userSelect: 'none',
-        overflowX: 'hidden'
-      }}
-    >
-      {/* Navegación Principal */}
-      <div style={{ padding: collapsed ? '16px 8px' : '20px 16px' }}>
-        {!collapsed && (
-          <div style={{ marginBottom: '20px', paddingLeft: '8px' }}>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                textTransform: 'uppercase',
-                color: '#94a3b8',
-                fontWeight: 700,
-                letterSpacing: '0.05em'
-              }}
-            >
-              Módulos Principales
-            </span>
-          </div>
-        )}
-
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {menuItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onSelectTab(item.id)}
-                title={collapsed ? item.label : undefined}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  width: '100%',
-                  padding: collapsed ? '12px 0' : '12px 14px',
-                  justifyContent: collapsed ? 'center' : 'flex-start',
-                  backgroundColor: isActive ? '#1e293b' : 'transparent',
-                  color: isActive ? '#ffffff' : '#cbd5e1',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  borderLeft: isActive ? '4px solid #38bdf8' : '4px solid transparent',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '1.15rem',
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    width: '24px',
-                    textAlign: 'center',
-                    color: isActive ? '#38bdf8' : '#94a3b8'
-                  }}
-                >
-                  {item.symbol}
-                </span>
-                {!collapsed && (
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '0.92rem', fontWeight: isActive ? 700 : 500 }}>
-                      {item.label}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      {item.desc}
-                    </span>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Footer del Sidebar: Perfil de Usuario, Botón Salir y Versión */}
-      <div
         style={{
-          padding: collapsed ? '14px 8px' : '16px',
-          borderTop: '1px solid #1e293b',
+          width: collapsed ? '72px' : '260px',
+          backgroundColor: '#0f172a', // Navy institucional TCS
+          color: '#ffffff',
+          transition: 'width 0.25s ease-in-out',
           display: 'flex',
           flexDirection: 'column',
-          gap: '12px'
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          height: 'calc(100vh - 76px)',
+          position: 'sticky',
+          top: '76px',
+          borderRight: '1px solid #1e293b',
+          userSelect: 'none',
+          overflowX: 'hidden'
         }}
       >
-        {/* Bloque de Usuario */}
+        {/* Navegación Principal */}
+        <div style={{ padding: collapsed ? '16px 8px' : '20px 16px' }}>
+          {!collapsed && (
+            <div style={{ marginBottom: '20px', paddingLeft: '8px' }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  textTransform: 'uppercase',
+                  color: '#94a3b8',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em'
+                }}
+              >
+                Módulos
+              </span>
+            </div>
+          )}
+
+          <nav style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {menuItems.map((item) => {
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => onSelectTab(item.id)}
+                  title={collapsed ? item.label : undefined}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    padding: collapsed ? '12px 0' : '12px 14px',
+                    justifyContent: collapsed ? 'center' : 'flex-start',
+                    backgroundColor: isActive ? '#1e293b' : 'transparent',
+                    color: isActive ? '#ffffff' : '#cbd5e1',
+                    border: 'none',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    borderLeft: isActive ? '4px solid #38bdf8' : '4px solid transparent',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '1.15rem',
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      width: '24px',
+                      textAlign: 'center',
+                      color: isActive ? '#38bdf8' : '#94a3b8'
+                    }}
+                  >
+                    {item.symbol}
+                  </span>
+                  {!collapsed && (
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '0.92rem', fontWeight: isActive ? 700 : 500 }}>
+                        {item.label}
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        {item.desc}
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Footer del Sidebar: Perfil de Usuario, Botón Salir y Versión */}
         <div
-          title={collapsed ? `${usuario?.nombre || 'Administrador GECOP'} (${usuario?.rol || 'Finanzas & Cobros'})` : undefined}
           style={{
+            padding: collapsed ? '14px 8px' : '16px',
+            borderTop: '1px solid #1e293b',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: collapsed ? 'center' : 'flex-start',
-            gap: '10px'
+            flexDirection: 'column',
+            gap: '12px'
           }}
         >
+          {/* Bloque de Usuario */}
           <div
+            title={collapsed ? `${usuario?.nombre || 'Administrador GECOP'} (${usuario?.rol || 'Finanzas & Cobros'})` : undefined}
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '50%',
-              backgroundColor: '#1e293b',
-              border: '1.5px solid #38bdf8',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: collapsed ? 'center' : 'flex-start',
+              gap: '10px'
+            }}
+          >
+            <div
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                backgroundColor: '#1e293b',
+                border: '1.5px solid #38bdf8',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                flexShrink: 0
+              }}
+            >
+              {usuario?.iniciales || 'AD'}
+            </div>
+
+            {!collapsed && (
+              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <span
+                  style={{
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    color: '#f8fafc',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {usuario?.nombre || 'Administrador GECOP'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.74rem',
+                    color: '#94a3b8',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {usuario?.rol || 'Finanzas & Cobros'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Botón Salir */}
+          <button
+            onClick={() => setConfirmarSalidaOpen(true)}
+            title="Cerrar sesión del sistema"
+            style={{
+              backgroundColor: '#dc2626',
+              border: '1px solid #ef4444',
+              cursor: 'pointer',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '8px',
+              fontSize: '0.88rem',
               fontWeight: 700,
-              fontSize: '0.85rem',
-              flexShrink: 0
+              padding: collapsed ? '8px 0' : '9px 12px',
+              borderRadius: '8px',
+              width: '100%',
+              transition: 'background-color 0.15s ease'
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#b91c1c')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
           >
-            {usuario?.iniciales || 'AD'}
+            <span style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1 }}>↪</span>
+            {!collapsed && <span>Salir</span>}
+          </button>
+
+          {/* Versión corporativa */}
+          <div style={{ textAlign: collapsed ? 'center' : 'left', paddingTop: '4px' }}>
+            {!collapsed ? (
+              <div>
+                <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}>
+                  TCS ERP • Módulo ADM
+                </div>
+                <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
+                  v1.0.0 • Ecosistema GECOP
+                </div>
+              </div>
+            ) : (
+              <span style={{ fontSize: '0.72rem', color: '#64748b' }}>v1.0</span>
+            )}
           </div>
-
-          {!collapsed && (
-            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-              <span
-                style={{
-                  fontSize: '0.86rem',
-                  fontWeight: 700,
-                  color: '#f8fafc',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                {usuario?.nombre || 'Administrador GECOP'}
-              </span>
-              <span
-                style={{
-                  fontSize: '0.74rem',
-                  color: '#94a3b8',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                {usuario?.rol || 'Finanzas & Cobros'}
-              </span>
-            </div>
-          )}
         </div>
-
-        {/* Botón Salir */}
-        <button
-          onClick={() => setConfirmarSalidaOpen(true)}
-          title="Cerrar sesión del sistema"
-          style={{
-            backgroundColor: '#dc2626',
-            border: '1px solid #ef4444',
-            cursor: 'pointer',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px',
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            padding: collapsed ? '8px 0' : '9px 12px',
-            borderRadius: '8px',
-            width: '100%',
-            transition: 'background-color 0.15s ease'
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#b91c1c')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
-        >
-          <span style={{ fontSize: '1rem', fontWeight: 700, lineHeight: 1 }}>↪</span>
-          {!collapsed && <span>Salir</span>}
-        </button>
-
-        {/* Versión corporativa */}
-        <div style={{ textAlign: collapsed ? 'center' : 'left', paddingTop: '4px' }}>
-          {!collapsed ? (
-            <div>
-              <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#94a3b8' }}>
-                TCS ERP • Módulo ADM
-              </div>
-              <div style={{ fontSize: '0.70rem', color: '#64748b', marginTop: '2px' }}>
-                v1.0.0 • Ecosistema GECOP
-              </div>
-            </div>
-          ) : (
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>v1.0</span>
-          )}
-        </div>
-      </div>
-    </aside>
+      </aside>
 
       {confirmarSalidaOpen &&
         createPortal(
@@ -269,9 +269,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               style={{
                 backgroundColor: '#ffffff',
                 borderRadius: '16px',
-                padding: '28px',
-                maxWidth: '420px',
-                width: '100%',
+                padding: '30px 32px',
+                maxWidth: '520px',
+                width: '94%',
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.25)',
                 border: '1px solid #cbd5e1',
                 fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
@@ -373,7 +373,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#b91c1c')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#dc2626')}
                 >
-                  Sí, Salir al Login
+                  Sí, Salir a la pantalla principal
                 </button>
               </div>
             </div>

@@ -33,27 +33,31 @@ select:focus-visible {
   font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
 }
 
-/* Animación Pulse Glow para alertas de Candado Activo TCS */
+/* Animación Pulse Glow azul de alto destaque para alerta de Cobros Nuevos */
 @keyframes candadoPulseGlow {
   0% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5);
-    border-color: #fde68a;
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.72), 0 4px 12px rgba(29, 78, 216, 0.28);
+    border-color: #60a5fa;
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 18px 4px rgba(245, 158, 11, 0.45), 0 0 6px 1px rgba(217, 119, 6, 0.3);
-    border-color: #f59e0b;
-    transform: scale(1.015);
+    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0), 0 0 22px 4px rgba(14, 165, 233, 0.52);
+    border-color: #bae6fd;
+    transform: scale(1.032);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
-    border-color: #fde68a;
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0), 0 4px 12px rgba(29, 78, 216, 0.28);
+    border-color: #60a5fa;
     transform: scale(1);
   }
 }
 
 .pulse-glow-candado {
-  animation: candadoPulseGlow 2.2s infinite ease-in-out;
+  animation: candadoPulseGlow 1.05s infinite ease-in-out;
+}
+
+.pulse-glow-candado:hover {
+  filter: brightness(1.08);
 }
 
 /* ================= ANIMACIÓN VÓRTICE SIMPLE LOGO TCS ================= */
@@ -83,7 +87,7 @@ select:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .pulse-glow-candado {
     animation: none;
-    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.5);
   }
   .tcs-logo-vortex-simple {
     animation: none;
