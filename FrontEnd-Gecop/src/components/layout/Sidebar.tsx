@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export type TabActiva = 'dashboard' | 'proyeccion' | 'cxc' | 'cxp' | 'pmo';
+export type TabActiva = 'dashboard' | 'proyeccion' | 'cxc' | 'cxp' | 'flujo_caja' | 'pmo';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -36,6 +36,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Compromisos de Pago',
       symbol: '↗',
       desc: 'Candado Financiero a Terceros'
+    },
+    {
+      id: 'flujo_caja' as TabActiva,
+      label: 'Flujo de Caja',
+      symbol: '◈',
+      desc: 'Caja y Capital de Proyectos'
     }
   ];
 

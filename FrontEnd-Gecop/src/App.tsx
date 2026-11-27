@@ -8,6 +8,7 @@ import { DashboardView } from './components/dashboard/DashboardView';
 import { MonthlyProjection } from './components/dashboard/MonthlyProjection';
 import { CxcTable } from './components/cxc/CxcTable';
 import { CxpTable } from './components/cxp/CxpTable';
+import { FlujoCajaView } from './components/cashflow/FlujoCajaView';
 import { PmoSync } from './components/pmo/PmoSync';
 import { ModalNuevoCobro } from './components/common/ModalNuevoCobro';
 import { ModalNuevoPago } from './components/common/ModalNuevoPago';
@@ -53,6 +54,8 @@ export const AppContent: React.FC = () => {
                   return <CxcTable />;
                 case 'cxp':
                   return <CxpTable />;
+                case 'flujo_caja':
+                  return <FlujoCajaView />;
                 case 'pmo':
                   return <PmoSync />;
                 default:
