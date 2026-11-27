@@ -219,7 +219,7 @@ export const CxpTable: React.FC = () => {
                   Estatus Candado
                 </th>
                 <th style={{ padding: '14px 16px', fontSize: '0.92rem', color: '#475569', fontWeight: 700, textAlign: 'center' }}>
-                  Acción Operativa & Estado CXP
+                  Acción Operativa
                 </th>
               </tr>
             </thead>
@@ -307,7 +307,21 @@ export const CxpTable: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#0f172a' }}>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              backgroundColor: '#e0f2fe',
+                              border: '1.5px solid #38bdf8',
+                              color: '#0c4a6e',
+                              fontWeight: 800,
+                              fontSize: '0.98rem',
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
                             Pago {indiceEnTurno} de {compromisosProyecto.length}
                           </div>
                           <div
@@ -315,7 +329,7 @@ export const CxpTable: React.FC = () => {
                               fontSize: '0.84rem',
                               color: cuotaEstaCobrada ? '#059669' : '#dc2626',
                               fontWeight: 700,
-                              marginTop: '4px'
+                              marginTop: '6px'
                             }}
                           >
                             {cuotaEstaCobrada

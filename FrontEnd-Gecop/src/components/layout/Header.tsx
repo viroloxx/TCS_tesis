@@ -107,7 +107,7 @@ export const Header: React.FC<HeaderProps> = ({ sidebarOpen, onToggleSidebar, on
                 lineHeight: 1.3
               }}
             >
-              Portal de Gestión de Cobros y Pagos <span style={{ fontWeight: 700, color: '#0284c7' }}>(GECOP)</span>
+              Portal de Gestión de Cobros y Pagos
             </span>
           </div>
         </div>

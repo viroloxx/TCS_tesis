@@ -102,10 +102,10 @@ export const MonthlyProjection: React.FC = () => {
                 Periodo / Mes
               </th>
               <th style={{ padding: '14px 16px', fontSize: '0.94rem', color: '#065f46', fontWeight: 700 }}>
-                ↙ Ingresos Proyectados (CXC)
+                ↙ Ingresos Proyectados
               </th>
               <th style={{ padding: '14px 16px', fontSize: '0.94rem', color: '#991b1b', fontWeight: 700 }}>
-                ↗ Egresos Proyectados (CXP)
+                ↗ Egresos Proyectados
               </th>
               <th style={{ padding: '14px 16px', fontSize: '0.94rem', color: '#0f172a', fontWeight: 700 }}>
                 Flujo Neto Estimado

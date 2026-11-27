@@ -328,13 +328,27 @@ export const CxcTable: React.FC = () => {
                         </div>
                       ) : (
                         <>
-                          <div style={{ fontWeight: 700, fontSize: '1.05rem', color: '#0f172a' }}>
+                          <div
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              padding: '5px 12px',
+                              borderRadius: '8px',
+                              backgroundColor: esPagoAlContado ? '#eff6ff' : '#e0f2fe',
+                              border: `1.5px solid ${esPagoAlContado ? '#93c5fd' : '#38bdf8'}`,
+                              color: esPagoAlContado ? '#1d4ed8' : '#0c4a6e',
+                              fontWeight: 800,
+                              fontSize: '0.98rem',
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
                             {esPagoAlContado
                               ? 'Pago Único al Contado'
                               : `Cuota ${cuotaEnTurno.numeroCuota} de ${cuotaEnTurno.totalCuotas}`}
                           </div>
                           {cuotaEnTurno.numeroFactura && (
-                            <div style={{ fontSize: '0.88rem', color: '#2563eb', fontWeight: 600, marginTop: '4px' }}>
+                            <div style={{ fontSize: '0.88rem', color: '#2563eb', fontWeight: 600, marginTop: '6px' }}>
                               N° {cuotaEnTurno.numeroFactura}
                             </div>
                           )}

@@ -353,7 +353,7 @@ export const DashboardCharts: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase' }}>
-                  ● Falta (Vencido)
+                  ● Falta
                 </div>
                 <div style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 800, fontSize: '1rem', color: '#dc2626', marginTop: '2px' }}>
                   {fmtMonto(cxcVencidoUSD, 'VES', mostrarBalance)}
